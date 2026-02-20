@@ -1,3 +1,5 @@
+> This library isn't supported anymore because i don't get time to code on open projects.
+
 # 🦆 DuckDuck (DuckDuckGo Search)
 
 DuckDuck is a JS Module for interacting with DuckDuckGo's chat and search APIs. It supports conversational AI chat.
