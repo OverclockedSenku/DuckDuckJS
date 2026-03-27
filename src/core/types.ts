@@ -36,9 +36,9 @@ export interface SearchOptions {
 
 export interface ImageResult {
   title: string;
-  image: string;      // Direct high-res image link
+  image: string; // Direct high-res image link
   thumbnail: string;
-  url: string;        // The website hosting the image
+  url: string; // The website hosting the image
   height: number;
   width: number;
   source: string;
@@ -47,7 +47,7 @@ export interface ImageResult {
 export interface VideoResult {
   title: string;
   description: string;
-  content: string;    // Direct link to the video (e.g., YouTube URL)
+  content: string; // Direct link to the video (e.g., YouTube URL)
   duration: string;
   embed_html: string;
   publisher: string;
@@ -62,3 +62,4 @@ export interface NewsResult {
   image: string;
   source: string;
 }
+

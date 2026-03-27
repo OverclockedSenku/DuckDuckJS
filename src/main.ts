@@ -1,3 +1,20 @@
+/**
+ * DuckDuckJS
+ * Copyright 2026 Raj Dave (@overclockedsenku)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 import { parseArgs } from "@std/cli/parse-args";
 import { DuckDuckGoEngine } from "./engine/duckduckgo.ts";
 
@@ -61,7 +78,9 @@ Examples:
   }
 
   if (!flags.json) {
-    console.log(`\n🔍 Searching ${engine.name} (${flags.type}) for: "${query}"...\n`);
+    console.log(
+      `\n🔍 Searching ${engine.name} (${flags.type}) for: "${query}"...\n`,
+    );
   }
 
   // Execute the search function based on the requested type.
@@ -74,6 +93,7 @@ Examples:
 
     // Any is used here to catch the generic shape of the results array 
     // since images, videos, and text return slightly different interfaces.
+    // TODO fix usage of any
     let results: any[];
 
     switch (flags.type.toLowerCase()) {
@@ -96,7 +116,9 @@ Examples:
 
     if (!results || results.length === 0) {
       if (flags.json) console.log("[]");
-      else console.log(`No results found. ${engine.name} might be having a bad day.`);
+      else {console.log(
+          `No results found. ${engine.name} might be having a bad day.`,
+        );}
       Deno.exit(0);
     }
 
@@ -112,7 +134,8 @@ Examples:
         
         // Dynamically grab the main URL. 
         // Text uses 'href', Images use 'image', Videos use 'content', News uses 'url'.
-        const link = res.href || res.image || res.content || res.url || "No link available";
+        const link = res.href || res.image || res.content || res.url ||
+          "No link available";
         console.log(`     \x1b[34m→ ${link}\x1b[0m`);
         
         // Dynamically grab the description/source.
