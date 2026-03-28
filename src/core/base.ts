@@ -20,28 +20,31 @@
 import type { SearchOptions, SearchResult } from "./types.ts";
 
 /**
- * The core blueprint for all DuckDuckJS search engines.
- * Any new engine (Google, Bing, etc.) must extend this class and
- * implement the `search` method at a minimum.
+ * The foundation for all search engine drivers.
+ * Extending this class ensures your engine integrates correctly with the
+ * CLI and system wrappers.
  */
-export abstract class BaseEngine {
-  /** * The unique identifier for the engine (e.g., "DuckDuckGo").
-   * Useful for logging and routing in multi-engine setups.
+export abstract class BaseSearchEngine {
+  /** * The display name of the engine (e.g., "Brave").
+   * This is used for labeling results and prefixing errors.
    */
   abstract readonly name: string;
 
   /**
-   * Standardized error thrower.
-   * Prefixes errors with the engine name so parallel scraping failures
-   * are easy to trace in the console.
+   * Internal helper to throw standardized errors.
+   * Helps users identify which specific engine failed during parallel searches.
+   * * @example throwError("Rate limit exceeded") // throws "[EngineName] Rate limit exceeded"
+   * @throws {Error} Prefixed with the engine name.
    */
   protected throwError(message: string): never {
     throw new Error(`[${this.name}] ${message}`);
   }
 
   /**
-   * Executes the standard text search query.
-   * REQUIRED for all engines.
+   * The primary text search method. Every engine must implement this.
+   * * @param query The search term.
+   * @param options Optional filters like region or time limit.
+   * @returns An array of TextResult objects.
    */
   abstract search(
     query: string,
@@ -49,7 +52,9 @@ export abstract class BaseEngine {
   ): Promise<SearchResult[]>;
 
   /**
-   * Optional: Executes an image search.
+   * Fetches image results.
+   * If not overridden, it returns a "System" result stating it's not supported.
+   * * @returns An array of ImageResult objects.
    */
   async images(
     _query: string,
@@ -70,7 +75,9 @@ export abstract class BaseEngine {
   }
 
   /**
-   * Optional: Executes a video search.
+   * Fetches video results.
+   * If not overridden, it returns a "System" result stating it's not supported.
+   * * @returns An array of VideoResult objects.
    */
   async videos(
     _query: string,
@@ -91,7 +98,9 @@ export abstract class BaseEngine {
   }
 
   /**
-   * Optional: Executes a news search.
+   * Fetches news articles.
+   * If not overridden, it returns a "System" result stating it's not supported.
+   * * @returns An array of NewsResult objects.
    */
   async news(
     _query: string,

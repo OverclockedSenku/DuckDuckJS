@@ -1,145 +1,159 @@
 # DuckDuckJS
 
-> This version of duckduckjs is evolving very fast, so expect some breaking
-> changes.
+DuckDuckJS is a performance-oriented, Deno-first meta-search engine library and
+command-line tool. It provides a unified TypeScript interface to aggregate
+search results from multiple providers by utilizing efficient HTML fallbacks and
+internal JSON APIs, bypassing the need for heavy browser automation or complex
+frontend execution.
 
-A fast, dependency-light, Deno-first TypeScript metasearch library and CLI tool
-that aggregates results from diverse web search services.
-
-Bypasses aggressive bot-protection and JS-heavy frontends by utilizing raw HTML
-fallbacks and internal JSON APIs.
-
-## Credits & Transparency
-
-- **Inspiration:** This project is heavily inspired by and architecturally
-  modeled after the excellent Python library
-  [ddgs by deedy5](https://github.com/deedy5/ddgs).
-- **Author:** Built by [@overclockedsenku](https://github.com/overclockedsenku).
-- **AI Disclosure:** The core mechanics, reverse-engineering flow, and
-  architectural decisions were entirely human-written. AI was used strictly as a
-  pair-programmer to enhance code structure, write professional JSDoc comments,
-  and format the repository.
+The project is currently in a fast-moving beta state. Architectural changes may
+occur as we expand engine support and server capabilities.
 
 ---
 
-## Current Features
+## Features
 
-- **DuckDuckGo Engine:** Resilient scraping using HTML fallbacks and VQD token
-  extraction.
-- **Media Types:** Full support for Text, Images, Videos, and News searches.
-- **Built-in CLI:** A fast, heavily typed command-line interface with
-  pretty-printing and JSON output support.
-- **Deno-Native:** Zero configuration, strict TypeScript, and easily compilable
-  to a standalone binary.
-
----
-
-## CLI Usage
-
-> Currently it requires deno to run, but in future there will be compiled
-> binary.
-
-You can run DuckDuckJS directly from your terminal using Deno.
-
-### Basic Search
-
-```bash
-deno run --allow-net src/cli.ts "TypeScript vs Rust"
-```
-
-### Media Types (Images, Videos, News)
-
-Use the `-T` or `--type` flag to search specific endpoints.
-
-```bash
-deno run --allow-net src/cli.ts "Cyberpunk wallpapers" -T image
-deno run --allow-net src/cli.ts "SpaceX launch" -T video
-deno run --allow-net src/cli.ts "AI regulations" -T news
-```
-
-### Advanced Options
-
-```bash
-# Search for results from the past week (-t w) on page 2 (-p 2)
-deno run --allow-net src/cli.ts "latest tech news" -t w -p 2
-
-# Output raw JSON for piping to other tools like jq
-deno run --allow-net src/cli.ts "best arch linux tiling wm" --json > output.json
-```
+- Modular Engine Architecture: A plug-and-play system for adding or swapping
+  search providers.
+- Multi-Media Support: Native handling for Text, Image, Video, and News search
+  results.
+- Resilient Scrape Logic: Uses optimized endpoints to minimize rate-limiting and
+  maximize speed.
+- Zero-Config CLI: Highly typed interface with support for pretty-printed
+  terminal output or raw JSON for piping.
+- Standalone Binaries: Cross-compiled executables for Linux, macOS, and Windows.
 
 ---
 
-## Library Usage
+## Quickstart
 
-> After a stable release the library will be pubished to JSR and NPM.
->
-> NOTE: LIBRARY API WILL CHANGE SOON.
+<details>
+<summary>Command Line Interface (CLI)</summary>
 
-DuckDuckJS is designed with a strict Object-Oriented interface, making it easy
-to drop into your own Deno or Node (via JSR) projects.
+### Running with Deno
+
+For immediate use without installation, use the Deno runtime:
+
+```bash
+# Basic text search
+deno run --allow-net src/cli.ts "search query"
+
+# Search for images in a specific region
+deno run --allow-net src/cli.ts "concept art" -T image -r us-en
+
+# Search news from the past week
+deno run --allow-net src/cli.ts "tech headlines" -T news -t w
+```
+
+### Using Compiled Binaries
+
+If you have downloaded a release binary, you can run it directly:
+
+```bash
+./duckduckjs "search query" --json
+```
+
+### Options
+
+- \-T, --type: text (default), image, video, news
+- \-p, --page: pagination offset
+- \-t, --time: time filter (d, w, m, y)
+- \-r, --region: region code (default: us-en)
+- \-j, --json: output raw JSON
+
+</details>
+
+<details> <summary>Library Integration (Developer Guide)</summary>
+
+DuckDuckJS uses a strict Object-Oriented approach. All engines extend a base
+class, ensuring a consistent contract for your applications.
+
+### Setup
+
+Import the specific engine you need from the library:
 
 ```typescript
-import { DuckDuckGoEngine } from "@overclockedsenku/duckduckjs";
+import { DuckDuckGoEngine } from "./src/engines/duckduckgo.ts";
+import { BraveEngine } from "./src/engines/brave.ts";
 
-const engine = new DuckDuckGoEngine();
+const ddg = new DuckDuckGoEngine();
 
-// 1. Standard Text Search
-const textResults = await engine.search("How to build an LLM", {
-  timeLimit: "m", // Past month
+// Execute a standard search
+const results = await ddg.search("Deno development", {
+  timeLimit: "w",
   page: 1,
 });
-console.log(textResults);
 
-// 2. Image Search
-const imageResults = await engine.images("Thousand Sunny One Piece");
-console.log(imageResults[0].image); // Direct high-res URL
-
-// 3. News Search
-const newsResults = await engine.news("Global markets");
-console.log(newsResults[0].title);
+// Access media-specific endpoints
+const images = await ddg.images("mountain landscapes");
 ```
 
-### The `SearchOptions` Interface
+### Interfaces
 
-All engine methods accept an optional `SearchOptions` object:
+The library provides standardized result shapes for all engines:
 
-```typescript
-interface SearchOptions {
-  region?: string; // e.g., "us-en"
-  timeLimit?: "d" | "w" | "m" | "y";
-  page?: number; // Pagination offset
-  safesearch?: "on" | "moderate" | "off";
-}
+- TextResult: { type: "text", title, href, body }
+- ImageResult: { type: "image", title, image, thumbnail, url, width, height,
+  source }
+- VideoResult: { type: "video", title, description, content, duration, publisher
+  }
+- NewsResult: { type: "news", date, title, body, url, image, source }
+
+</details>
+
+---
+
+## Roadmap
+
+This project is evolving from a simple scraper into a comprehensive search
+infrastructure tool.
+
+- [x] Base SearchEngine Architecture and Interfaces
+- [x] DuckDuckGo Core Implementation (Text, Images, Videos, News)
+- [x] Brave Search Engine Implementation
+- [x] Multi-platform CLI Tool
+- [ ] DuckDuckGo AI Chat (Accessing Llama/Claude endpoints)
+- [ ] Integration of Bing, Google, and Mojeek engines
+- [ ] Hono-based HTTP/REST Server wrapper
+- [ ] MCP (Model Context Protocol) Server for AI Agent tooling
+
+---
+
+## Development and Branching
+
+Development occurs on the main branch. Stable releases are branched using a
+Year.Patch format (e.g., 26.0.0, 26.1.0).
+
+To contribute, ensure your code passes the built-in quality checks:
+
+```bash
+deno fmt
+deno lint
+deno task test:integration
 ```
 
 ---
 
-## Roadmap & Development
+## Credits and Transparency
 
-This library is actively under development. We are transitioning from a
-single-engine scraper to a modular Meta-Search infrastructure tool.
-
-### Currently Implemented
-
-- [x] Base SearchEngine Architecture & Interfaces
-- [x] DuckDuckGo Core Engine (Text, Images, Videos, News)
-- [x] Command Line Interface (CLI)
-
-### In Development (Coming Soon)
-
-- [ ] **Additional Search Engines:** Plug-and-play modules for Bing, Google,
-      Brave, and Mojeek.
-- [ ] **DuckDuckGo AI Chat:** Implementing the `duckchat` wrapper to interact
-      with Llama/Claude endpoints without requiring API keys.
-- [ ] **HTTP/REST Server:** A fast API wrapper built with Hono to serve search
-      results over local HTTP.
-- [ ] **MCP (Model Context Protocol) Server:** Turn DuckDuckJS into a native
-      tool for AI agents (Claude Desktop, etc.) to query the web in real-time.
+- Inspiration: Architecturally modeled after the Python library ddgs by deedy5.
+- Author: Developed and maintained by @overclockedsenku (Raj Dave).
+- AI Disclosure: The core logic, reverse-engineering of endpoints, and
+  architectural flow are human-authored. AI was utilized as a pair-programmer
+  for code enhancement, documentation formatting, and JSDoc generation.
 
 ---
 
-## ⚠️ Disclaimer
+## License
 
-This library is for educational purposes only. Web scraping relies on
-undocumented, internal APIs that can change at any time. Please respect the rate
-limits of the search engines you are querying.
+Licensed under the Apache License, Version 2.0. Attribution to the original
+author is required for any redistributed or modified versions of the software.
+
+---
+
+## Disclaimer
+
+DuckDuckJS is intended for educational and developmental purposes. Web scraping
+utilizes undocumented internal APIs which are subject to change without notice.
+Users are responsible for adhering to the terms of service and rate limits of
+the respective search providers.

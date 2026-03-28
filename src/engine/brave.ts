@@ -16,61 +16,77 @@
  */
 
 import * as cheerio from "cheerio";
-import { BaseEngine } from "../core/baseengine.ts";
-import type { SearchResult, SearchOptions } from "../core/types.ts";
+import { BaseSearchEngine } from "../core/base.ts";
+import type { SearchOptions, SearchResult } from "../core/types.ts";
 
 /**
- * Brave Search Engine.
- * Scrapes the primary web endpoint. Brave relies heavily on cookies
- * for state management (region, safesearch) rather than URL parameters.
+ * Brave Search Engine driver.
+ * * This engine scrapes the primary Brave Search web endpoint. Note that Brave
+ * prefers stateful cookies over URL parameters for settings like SafeSearch
+ * and localization.
  */
-export class BraveEngine extends BaseEngine {
+export class BraveEngine extends BaseSearchEngine {
   readonly name = "Brave";
   private readonly ENDPOINT = "https://search.brave.com/search";
 
-  // Brave is slightly more aggressive with bot detection, 
-  // so we ensure a very standard Accept header alongside the User-Agent.
   private readonly HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
+    "User-Agent":
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+    "Accept":
+      "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
     "Accept-Language": "en-US,en;q=0.9",
   };
 
+  /**
+   * Performs a standard web search using the Brave Search engine.
+   * * @param query - The search string.
+   * @param options - Configuration including region, pagination, and safesearch.
+   * @returns A list of text-based search results.
+   * * @throws {Error} If the HTTP request fails or the response is not 200 OK.
+   */
   async search(
     query: string,
-    options: SearchOptions = {}
+    options: SearchOptions = {},
   ): Promise<SearchResult[]> {
-    const { region = "us-en", timeLimit, page = 1, safesearch = "moderate" } = options;
+    const { region = "us-en", timeLimit, page = 1, safesearch = "moderate" } =
+      options;
 
-    // 1. Build URL Parameters
+    // Build standard query parameters
     const params = new URLSearchParams({
       q: query,
       source: "web",
     });
 
     if (timeLimit) {
-      // Brave uses a specific mapping for time filters
-      const timeMap: Record<string, string> = { d: "pd", w: "pw", m: "pm", y: "py" };
+      const timeMap: Record<string, string> = {
+        d: "pd",
+        w: "pw",
+        m: "pm",
+        y: "py",
+      };
       if (timeMap[timeLimit]) {
         params.append("tf", timeMap[timeLimit]);
       }
     }
 
     if (page > 1) {
-      // Brave pagination uses a simple offset (page - 1)
       params.append("offset", (page - 1).toString());
     }
 
-    // 2. Build the Cookie String
-    // Brave uses the region prefix (e.g., 'us' from 'us-en') as a cookie key.
+    // Brave handles region and safesearch via cookies.
+    // Without these, the 'region' parameter is often ignored by their backend.
     const countryCode = region.split("-")[0].toLowerCase();
-    
-    const safeSearchMap: Record<string, string> = { on: "strict", moderate: "moderate", off: "off" };
-    const mappedSafeSearch = safeSearchMap[safesearch.toLowerCase()] || "moderate";
+    const safeSearchMap: Record<string, string> = {
+      on: "strict",
+      moderate: "moderate",
+      off: "off",
+    };
+    const mappedSafeSearch = safeSearchMap[safesearch.toLowerCase()] ||
+      "moderate";
 
-    const cookieString = `${countryCode}=${countryCode}; useLocation=0; safesearch=${mappedSafeSearch};`;
+    const cookieString =
+      `${countryCode}=${countryCode}; useLocation=0; safesearch=${mappedSafeSearch};`;
 
-    // 3. Execute the GET request
     const response = await fetch(`${this.ENDPOINT}?${params.toString()}`, {
       method: "GET",
       headers: {
@@ -87,18 +103,18 @@ export class BraveEngine extends BaseEngine {
     const $ = cheerio.load(htmlText);
     const results: SearchResult[] = [];
 
-    // 4. Parse the DOM
-    // Brave wraps actual web results in divs with data-type="web"
+    // Brave marks web results with a data-type attribute.
     $("div[data-type='web']").each((_, element) => {
-      // Find the link wrapping the title
       const anchor = $(element).find("a").first();
       const href = anchor.attr("href") || "";
-      
-      // Brave's title logic can be nested, so we look for standard classes
-      const title = $(element).find(".title, .sitename-container").last().text().trim() || anchor.text().trim();
-      
-      // The snippet body
-      const body = $(element).find(".snippet .content").text().trim() || $(element).find(".snippet-content").text().trim();
+
+      // Title and Snippet extraction with fallbacks for different DOM layouts
+      const title =
+        $(element).find(".title, .sitename-container").last().text().trim() ||
+        anchor.text().trim();
+
+      const body = $(element).find(".snippet .content").text().trim() ||
+        $(element).find(".snippet-content").text().trim();
 
       if (title && href) {
         results.push({ type: "text", title, href, body });

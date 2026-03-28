@@ -15,36 +15,43 @@
  * limitations under the License.
  */
 
+/**
+ * A union of all possible result types. Use the `type` property
+ * to narrow down the specific result shape in your logic.
+ */
 export type SearchResult = TextResult | ImageResult | VideoResult | NewsResult;
 
 /**
- * Common configuration options available across all engines.
+ * Global filters used to tune search results across different engines.
+ * Note that individual engines might ignore certain options if their
+ * upstream backend doesn't support them.
  */
 export interface SearchOptions {
-  /** * Regional locale string (e.g., 'us-en', 'uk-en').
-   * Defaults generally fall back to 'us-en'.
+  /** * Regional locale (e.g., 'us-en', 'uk-en').
+   * If not provided, engines typically default to 'us-en'.
    */
   region?: string;
 
-  /** Timeframe filter for recent results */
+  /** * Filter results by time.
+   * 'd' (day), 'w' (week), 'm' (month), 'y' (year).
+   */
   timeLimit?: "d" | "w" | "m" | "y";
 
-  /** * Pagination offset.
-   * Note: Different engines handle pagination math differently internally.
+  /** * The page offset.
+   * Since engines calculate pagination differently (some by items, some by index),
+   * this is abstracted to a simple page number.
    */
   page?: number;
 
   /**
-   * SafeSearch filter for explicit content.
-   * 'on': Strict filtering (default for most engines).
-   * 'moderate': Filter most explicit content.
-   * 'off': No filtering.
+   * Filter explicit content.
+   * Defaults to 'moderate' for most drivers.
    */
   safesearch?: "on" | "moderate" | "off";
 }
 
 /**
- * Standardized shape for all text based search results.
+ * Standard web search result containing a title, link, and snippet.
  */
 export interface TextResult {
   type: "text";
@@ -54,27 +61,29 @@ export interface TextResult {
 }
 
 /**
- * Standardized shape for all image based search results.
+ * Result shape for image searches.
+ * Includes both the high-res source and a smaller thumbnail.
  */
 export interface ImageResult {
   type: "image";
   title: string;
-  image: string; // Direct high-res image link
+  image: string;
   thumbnail: string;
-  url: string; // The website hosting the image
+  url: string;
   height: number;
   width: number;
   source: string;
 }
 
 /**
- * Standardized shape far all video based search results.
+ * Result shape for video searches.
+ * Usually includes metadata like duration and embeddable HTML.
  */
 export interface VideoResult {
   type: "video";
   title: string;
   description: string;
-  content: string; // Direct link to the video (e.g., YouTube URL)
+  content: string;
   duration: string;
   embed_html: string;
   publisher: string;
@@ -82,7 +91,8 @@ export interface VideoResult {
 }
 
 /**
- * Standardized shape far all news based search results.
+ * Result shape for news articles.
+ * Includes publication date and the original news source name.
  */
 export interface NewsResult {
   type: "news";

@@ -3,6 +3,7 @@
   "specifiers": {
     "jsr:@std/assert@1": "1.0.19",
     "jsr:@std/cli@^1.0.28": "1.0.28",
+    "jsr:@std/fmt@*": "1.0.9",
     "jsr:@std/fmt@^1.0.9": "1.0.9",
     "jsr:@std/internal@^1.0.12": "1.0.12",
     "npm:cheerio@*": "1.2.0",
@@ -18,7 +19,7 @@
     "@std/cli@1.0.28": {
       "integrity": "74ef9b976db59ca6b23a5283469c9072be6276853807a83ec6c7ce412135c70a",
       "dependencies": [
-        "jsr:@std/fmt",
+        "jsr:@std/fmt@^1.0.9",
         "jsr:@std/internal"
       ]
     },

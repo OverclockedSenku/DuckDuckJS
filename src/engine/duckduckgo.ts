@@ -16,18 +16,23 @@
  */
 
 import * as cheerio from "cheerio";
-import { BaseEngine } from "../core/baseengine.ts";
+import { BaseSearchEngine } from "../core/base.ts";
 import type { SearchOptions, SearchResult } from "../core/types.ts";
 
-export class DuckDuckGoEngine extends BaseEngine {
+/**
+ * DuckDuckGo Engine driver.
+ * * This engine uses a hybrid approach:
+ * 1. Standard search uses the 'html' fallback endpoint (no JS required).
+ * 2. Media searches (images, videos, news) use internal JSON APIs which
+ * require a VQD token for authentication.
+ */
+export class DuckDuckGoEngine extends BaseSearchEngine {
   readonly name = "DuckDuckGo";
 
-  // Base endpoints
   private readonly HTML_ENDPOINT = "https://html.duckduckgo.com/html/";
   private readonly IMAGE_ENDPOINT = "https://duckduckgo.com/i.js";
   private readonly VIDEO_ENDPOINT = "https://duckduckgo.com/v.js";
 
-  // Standardize the headers so DDG thinks we are a normal Chrome user
   private readonly HEADERS = {
     "User-Agent":
       "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
@@ -35,16 +40,14 @@ export class DuckDuckGoEngine extends BaseEngine {
   };
 
   /**
-   * THE SECRET SAUCE.
-   * DDG's JSON endpoints (images, videos, news, chat) require a Verification Query Definition (VQD) token.
-   * We get this by simulating a normal search on their homepage and parsing it out of the raw HTML bytes.
+   * Retrieves the Verification Query Definition (VQD) token.
+   * This token is mandatory for all DDG internal JSON API requests.
+   * * @private
    */
   private async _getVqd(query: string): Promise<string> {
     const response = await fetch(
       `https://duckduckgo.com/?q=${encodeURIComponent(query)}`,
-      {
-        headers: this.HEADERS,
-      },
+      { headers: this.HEADERS },
     );
 
     if (!response.ok) {
@@ -52,22 +55,21 @@ export class DuckDuckGoEngine extends BaseEngine {
     }
 
     const htmlText = await response.text();
-
-    // DDG dynamically injects the VQD in a few formats (vqd="...", vqd='...', or vqd=...).
-    // This regex catches all three variants safely.
     const match = htmlText.match(/vqd=(["']?)([^"'&]+)\1/);
+
     if (!match || !match[2]) {
       this.throwError(
-        "Could not extract VQD token. DDG might have updated their bot defenses.",
+        "Could not extract VQD token. DDG defenses may have changed.",
       );
     }
 
     return match[2];
   }
 
-  // ==========================================================================
-  // 1. Text Search (HTML Fallback)
-  // ==========================================================================
+  /**
+   * Executes a web search using the DDG HTML-only endpoint.
+   * This method is resilient as it avoids the complex JS-heavy main site.
+   */
   async search(
     query: string,
     options: SearchOptions = {},
@@ -102,6 +104,7 @@ export class DuckDuckGoEngine extends BaseEngine {
 
       if (title && href) {
         if (href.startsWith("//")) href = `https:${href}`;
+        // Filter out internal tracking/ad links
         if (!href.startsWith("https://duckduckgo.com/y.js?")) {
           results.push({ type: "text", title, href, body });
         }
@@ -111,35 +114,30 @@ export class DuckDuckGoEngine extends BaseEngine {
     return results;
   }
 
-  // ==========================================================================
-  // 2. Image Search (JSON API)
-  // ==========================================================================
+  /**
+   * Performs an image search via the internal JSON API.
+   */
   override async images(
     query: string,
     options: SearchOptions = {},
   ): Promise<SearchResult[]> {
     const { region = "us-en", safesearch = "moderate", page = 1 } = options;
-
-    // Step 1: Steal the token
     const vqd = await this._getVqd(query);
 
-    // Step 2: Build the GET payload
     const safeSearchMap: Record<string, string> = {
       on: "1",
       moderate: "1",
       off: "-1",
     };
-
     const params = new URLSearchParams({
-      o: "json", // Request JSON response
-      q: query, // The query
-      l: region, // Locale
-      vqd: vqd, // The verification token
+      o: "json",
+      q: query,
+      l: region,
+      vqd: vqd,
       p: safeSearchMap[safesearch.toLowerCase()] || "1",
-      ct: "AT", // Client type (expected by API)
+      ct: "AT",
     });
 
-    // Image API pagination offset
     if (page > 1) {
       params.append("s", ((page - 1) * 100).toString());
     }
@@ -154,33 +152,28 @@ export class DuckDuckGoEngine extends BaseEngine {
 
     if (!response.ok) this.throwError(`Image Search HTTP ${response.status}`);
 
-    // Step 3: Parse and map the JSON directly
     const json = await response.json();
     const rawResults = json.results || [];
 
     // deno-lint-ignore no-explicit-any
-    return rawResults.map((item: any) => ({
-      ...item,
-      type: "image",
-    }));
+    return rawResults.map((item: any) => ({ ...item, type: "image" }));
   }
 
-  // ==========================================================================
-  // 3. Video Search (JSON API)
-  // ==========================================================================
+  /**
+   * Performs a video search via the internal JSON API.
+   */
   override async videos(
     query: string,
     options: SearchOptions = {},
   ): Promise<SearchResult[]> {
     const { region = "us-en", safesearch = "moderate", page = 1 } = options;
-
     const vqd = await this._getVqd(query);
+
     const safeSearchMap: Record<string, string> = {
       on: "1",
       moderate: "-1",
       off: "-2",
     };
-
     const params = new URLSearchParams({
       o: "json",
       q: query,
@@ -207,49 +200,36 @@ export class DuckDuckGoEngine extends BaseEngine {
     const rawResults = json.results || [];
 
     // deno-lint-ignore no-explicit-any
-    return rawResults.map((item: any) => ({
-      ...item,
-      type: "video",
-    }));
+    return rawResults.map((item: any) => ({ ...item, type: "video" }));
   }
 
-  // ==========================================================================
-  // 4. News Search (JSON API)
-  // ==========================================================================
+  /**
+   * Performs a news search via the internal JSON API.
+   */
   override async news(
     query: string,
     options: SearchOptions = {},
   ): Promise<SearchResult[]> {
     const { region = "us-en", safesearch = "moderate", timeLimit, page = 1 } =
       options;
-
-    // Step 1: Grab the bouncer's wristband (VQD token)
     const vqd = await this._getVqd(query);
 
-    // Notice the different mapping here compared to the Image API
     const safeSearchMap: Record<string, string> = {
       on: "1",
       moderate: "-1",
       off: "-2",
     };
-
     const params = new URLSearchParams({
       o: "json",
-      noamp: "1", // Tell DDG we don't want Google AMP garbage links
+      noamp: "1",
       q: query,
       l: region,
       vqd: vqd,
       p: safeSearchMap[safesearch.toLowerCase()] || "-1",
     });
 
-    if (timeLimit) {
-      params.append("df", timeLimit);
-    }
-
-    if (page > 1) {
-      // News pagination jumps by 30
-      params.append("s", ((page - 1) * 30).toString());
-    }
+    if (timeLimit) params.append("df", timeLimit);
+    if (page > 1) params.append("s", ((page - 1) * 30).toString());
 
     const response = await fetch(
       `https://duckduckgo.com/news.js?${params.toString()}`,
@@ -264,13 +244,12 @@ export class DuckDuckGoEngine extends BaseEngine {
     const json = await response.json();
     const rawResults = json.results || [];
 
-    // Step 3: Map the response to our strict interface
     // deno-lint-ignore no-explicit-any
     return rawResults.map((item: any) => ({
       type: "news",
       date: item.date || "",
       title: item.title || "",
-      body: item.excerpt || "", // Map 'excerpt' to 'body' for CLI consistency
+      body: item.excerpt || "",
       url: item.url || "",
       image: item.image || "",
       source: item.source || "",

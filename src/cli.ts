@@ -17,7 +17,7 @@
 
 import { parseArgs } from "@std/cli/parse-args";
 import { DuckDuckGoEngine } from "./engine/duckduckgo.ts";
-import { SearchResult } from "./core/types.ts";
+import type { SearchResult } from "./core/types.ts";
 import { BraveEngine } from "./engine/brave.ts";
 
 async function main() {

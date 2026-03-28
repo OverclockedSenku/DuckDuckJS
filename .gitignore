@@ -1,0 +1,18 @@
+# Deno / Node
+.env
+.vscode/
+node_modules/
+deno.lock
+
+# Build Artifacts
+bin/
+dist/
+
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
