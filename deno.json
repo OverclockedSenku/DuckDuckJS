@@ -1,6 +1,6 @@
 {
   "name": "@overclockedsenku/duckduckjs",
-  "version": "26.0.0-beta",
+  "version": "26.0.0",
   "exports": "./mod.ts",
   "license": "Apache-2.0",
   "publish": {

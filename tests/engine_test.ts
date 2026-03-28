@@ -4,11 +4,19 @@
  * * This suite verifies engine health with a 3-try retry strategy.
  * Returns Exit Code 1 if any engine fails all retries.
  */
+// deno-lint-ignore-file
 
 import { DuckDuckGoEngine } from "../src/engine/duckduckgo.ts";
 import { BraveEngine } from "../src/engine/brave.ts";
-import { 
-  green, red, yellow, blue, bold, gray, cyan, magenta 
+import {
+  blue,
+  bold,
+  cyan,
+  gray,
+  green,
+  magenta,
+  red,
+  yellow,
 } from "jsr:@std/fmt/colors";
 
 // --- Types for Reporting ---
@@ -57,11 +65,11 @@ async function runTest(engine: any, feature: string, method: string) {
   for (let i = 1; i <= RETRY_LIMIT; i++) {
     const start = performance.now();
     const timestamp = new Date().toLocaleTimeString();
-    
+
     try {
       // Execute the dynamic method (e.g., engine.images("query"))
       const results = await engine[method](TEST_QUERY);
-      
+
       const end = performance.now();
       const duration = Math.round(end - start);
 
@@ -71,23 +79,25 @@ async function runTest(engine: any, feature: string, method: string) {
 
       attempts.push({ attempt: i, timeTaken: duration, timestamp });
       console.log(green(`  ✓ Attempt ${i}: Success (${duration}ms)`));
-      
+
       success = true;
       status = i === 1 ? "PASSED" : "FLAKY";
       break;
     } catch (err: any) {
       const end = performance.now();
       const duration = Math.round(end - start);
-      
-      attempts.push({ 
-        attempt: i, 
-        timeTaken: duration, 
-        error: err.message, 
-        timestamp 
+
+      attempts.push({
+        attempt: i,
+        timeTaken: duration,
+        error: err.message,
+        timestamp,
       });
 
-      console.log(red(`  ✕ Attempt ${i}: Failed - ${err.message} (${duration}ms)`));
-      
+      console.log(
+        red(`  ✕ Attempt ${i}: Failed - ${err.message} (${duration}ms)`),
+      );
+
       if (i < RETRY_LIMIT) {
         console.log(gray(`      Retrying in ${COOL_DOWN_MS}ms...`));
         await sleep(COOL_DOWN_MS);
@@ -100,7 +110,7 @@ async function runTest(engine: any, feature: string, method: string) {
     feature,
     status,
     attempts,
-    finalTry: attempts.length
+    finalTry: attempts.length,
   });
 }
 
@@ -122,29 +132,45 @@ async function main() {
       await runTest(engine, "Video Search", "videos");
       await runTest(engine, "News Search", "news");
     }
-    
+
     // Add cool-down between different engines
     await sleep(2000);
   }
 
   // --- Final Report Generation ---
 
-  console.log(bold(cyan("\n\n===============================================")));
+  console.log(
+    bold(cyan("\n\n===============================================")),
+  );
   console.log(bold(cyan("             FINAL QUALITY REPORT              ")));
   console.log(bold(cyan("===============================================")));
 
   let overallFailure = false;
 
   reports.forEach((r) => {
-    const icon = r.status === "PASSED" ? green("●") : r.status === "FLAKY" ? yellow("●") : red("●");
-    console.log(`${icon} ${bold(r.engine.padEnd(12))} | ${r.feature.padEnd(15)} | ${bold(r.status)}`);
-    
+    const icon = r.status === "PASSED"
+      ? green("●")
+      : r.status === "FLAKY"
+      ? yellow("●")
+      : red("●");
+    console.log(
+      `${icon} ${bold(r.engine.padEnd(12))} | ${r.feature.padEnd(15)} | ${
+        bold(r.status)
+      }`,
+    );
+
     r.attempts.forEach((at) => {
       const time = gray(`${at.timeTaken}ms`);
       if (at.error) {
-        console.log(gray(`   └─ Try ${at.attempt}: [${at.timestamp}] ERROR: ${at.error} (${time})`));
+        console.log(
+          gray(
+            `   └─ Try ${at.attempt}: [${at.timestamp}] ERROR: ${at.error} (${time})`,
+          ),
+        );
       } else {
-        console.log(gray(`   └─ Try ${at.attempt}: [${at.timestamp}] SUCCESS (${time})`));
+        console.log(
+          gray(`   └─ Try ${at.attempt}: [${at.timestamp}] SUCCESS (${time})`),
+        );
       }
     });
 
@@ -154,7 +180,9 @@ async function main() {
   console.log(bold(cyan("===============================================")));
 
   if (overallFailure) {
-    console.log(red(bold("\n🚨 CI/CD STATUS: FAILED (Critical Engine Failure)")));
+    console.log(
+      red(bold("\n🚨 CI/CD STATUS: FAILED (Critical Engine Failure)")),
+    );
     Deno.exit(1);
   } else {
     console.log(green(bold("\n✅ CI/CD STATUS: PASSED")));
