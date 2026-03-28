@@ -159,6 +159,7 @@ export class DuckDuckGoEngine extends BaseSearchEngine {
     if (!response.ok) this.throwError(`Image Search HTTP ${response.status}`);
 
     const json = await response.json();
+    // @ts-ignore: Accessing results on unknown JSON response
     const rawResults = json.results || [];
 
     // deno-lint-ignore no-explicit-any
@@ -203,6 +204,7 @@ export class DuckDuckGoEngine extends BaseSearchEngine {
     if (!response.ok) this.throwError(`Video Search HTTP ${response.status}`);
 
     const json = await response.json();
+    // @ts-ignore: Accessing results on unknown JSON response
     const rawResults = json.results || [];
 
     // deno-lint-ignore no-explicit-any
@@ -248,6 +250,7 @@ export class DuckDuckGoEngine extends BaseSearchEngine {
     if (!response.ok) this.throwError(`News Search HTTP ${response.status}`);
 
     const json = await response.json();
+    // @ts-ignore: Accessing results on unknown JSON response
     const rawResults = json.results || [];
 
     // deno-lint-ignore no-explicit-any
