@@ -17,6 +17,7 @@
 
 import { parseArgs } from "@std/cli/parse-args";
 import { DuckDuckGoEngine } from "./engine/duckduckgo.ts";
+import { SearchResult } from "./core/types.ts";
 
 async function main() {
   // Parse the raw command line arguments
@@ -91,10 +92,10 @@ Examples:
       timeLimit: flags.time as "d" | "w" | "m" | "y" | undefined,
     };
 
-    // Any is used here to catch the generic shape of the results array 
+    // Any is used here to catch the generic shape of the results array
     // since images, videos, and text return slightly different interfaces.
     // TODO fix usage of any
-    let results: any[];
+    let results: SearchResult[];
 
     switch (flags.type.toLowerCase()) {
       case "image":
@@ -131,19 +132,31 @@ Examples:
       results.forEach((res, i) => {
         const index = String(i + 1).padStart(2, "0");
         console.log(`\x1b[32m[${index}]\x1b[0m \x1b[1m${res.title}\x1b[0m`);
-        
-        // Dynamically grab the main URL. 
-        // Text uses 'href', Images use 'image', Videos use 'content', News uses 'url'.
-        const link = res.href || res.image || res.content || res.url ||
-          "No link available";
-        console.log(`     \x1b[34m→ ${link}\x1b[0m`);
-        
-        // Dynamically grab the description/source.
-        const desc = res.body || res.description || res.source || "";
-        if (desc) {
-          console.log(`     → \x1b[90m${desc}\x1b[0m\n`);
-        } else {
-          console.log("\n"); // Just pad with an empty line if there's no snippet
+
+        switch (res.type) {
+          case "text":
+            console.log(`     \x1b[34m→ ${res.href}\x1b[0m`);
+            console.log(`     → \x1b[90m${res.body}\x1b[0m\n`);
+            break;
+
+          case "image":
+            console.log(`     \x1b[34m→ ${res.image}\x1b[0m`);
+            console.log(
+              `     → \x1b[90mSource: ${res.source} | ${res.width}x${res.height}\x1b[0m\n`,
+            );
+            break;
+
+          case "video":
+            console.log(`     \x1b[34m→ ${res.content}\x1b[0m`);
+            console.log(
+              `     → \x1b[90m${res.duration} | ${res.publisher}\x1b[0m\n`,
+            );
+            break;
+
+          case "news":
+            console.log(`     \x1b[34m→ ${res.url}\x1b[0m`);
+            console.log(`     → \x1b[90m${res.source} | ${res.date}\x1b[0m\n`);
+            break;
         }
       });
     }

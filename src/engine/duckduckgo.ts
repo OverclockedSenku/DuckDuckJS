@@ -17,13 +17,7 @@
 
 import * as cheerio from "cheerio";
 import { BaseEngine } from "../core/baseengine.ts";
-import type {
-  ImageResult,
-  NewsResult,
-  SearchOptions,
-  SearchResult,
-  VideoResult,
-} from "../core/types.ts";
+import type { SearchOptions, SearchResult } from "../core/types.ts";
 
 export class DuckDuckGoEngine extends BaseEngine {
   readonly name = "DuckDuckGo";
@@ -108,22 +102,22 @@ export class DuckDuckGoEngine extends BaseEngine {
 
       if (title && href) {
         if (href.startsWith("//")) href = `https:${href}`;
-        results.push({ title, href, body });
+        if (!href.startsWith("https://duckduckgo.com/y.js?")) {
+          results.push({ type: "text", title, href, body });
+        }
       }
     });
 
-    return results.filter((res) =>
-      !res.href.startsWith("https://duckduckgo.com/y.js?")
-    );
+    return results;
   }
 
   // ==========================================================================
   // 2. Image Search (JSON API)
   // ==========================================================================
-  async images(
+  override async images(
     query: string,
     options: SearchOptions = {},
-  ): Promise<ImageResult[]> {
+  ): Promise<SearchResult[]> {
     const { region = "us-en", safesearch = "moderate", page = 1 } = options;
 
     // Step 1: Steal the token
@@ -162,18 +156,22 @@ export class DuckDuckGoEngine extends BaseEngine {
 
     // Step 3: Parse and map the JSON directly
     const json = await response.json();
-    const results: ImageResult[] = json.results || [];
+    const rawResults = json.results || [];
 
-    return results;
+    // deno-lint-ignore no-explicit-any
+    return rawResults.map((item: any) => ({
+      ...item,
+      type: "image",
+    }));
   }
 
   // ==========================================================================
   // 3. Video Search (JSON API)
   // ==========================================================================
-  async videos(
+  override async videos(
     query: string,
     options: SearchOptions = {},
-  ): Promise<VideoResult[]> {
+  ): Promise<SearchResult[]> {
     const { region = "us-en", safesearch = "moderate", page = 1 } = options;
 
     const vqd = await this._getVqd(query);
@@ -206,16 +204,22 @@ export class DuckDuckGoEngine extends BaseEngine {
     if (!response.ok) this.throwError(`Video Search HTTP ${response.status}`);
 
     const json = await response.json();
-    return json.results || [];
+    const rawResults = json.results || [];
+
+    // deno-lint-ignore no-explicit-any
+    return rawResults.map((item: any) => ({
+      ...item,
+      type: "video",
+    }));
   }
 
   // ==========================================================================
   // 4. News Search (JSON API)
   // ==========================================================================
-  async news(
+  override async news(
     query: string,
     options: SearchOptions = {},
-  ): Promise<NewsResult[]> {
+  ): Promise<SearchResult[]> {
     const { region = "us-en", safesearch = "moderate", timeLimit, page = 1 } =
       options;
 
@@ -261,8 +265,9 @@ export class DuckDuckGoEngine extends BaseEngine {
     const rawResults = json.results || [];
 
     // Step 3: Map the response to our strict interface
-    // TODO Fix usage of any
+    // deno-lint-ignore no-explicit-any
     return rawResults.map((item: any) => ({
+      type: "news",
       date: item.date || "",
       title: item.title || "",
       body: item.excerpt || "", // Map 'excerpt' to 'body' for CLI consistency
