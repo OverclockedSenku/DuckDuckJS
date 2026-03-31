@@ -19,6 +19,9 @@ import { parseArgs } from "@std/cli/parse-args";
 import { DuckDuckGoEngine } from "./engine/duckduckgo.ts";
 import type { SearchResult } from "./core/types.ts";
 import { BraveEngine } from "./engine/brave.ts";
+import { YahooEngine } from "./engine/yahoo.ts";
+import { GoogleEngine } from "./engine/google.ts";
+import { MojeekEngine } from "./engine/mojeek.ts";
 
 async function main() {
   // Parse the raw command line arguments
@@ -71,11 +74,21 @@ Examples:
   // Select and Create the requested engine.
   let engine;
   switch (flags.engine) {
+    case "duckduckgo":
     case "ddg":
       engine = new DuckDuckGoEngine();
       break;
     case "brave":
       engine = new BraveEngine();
+      break;
+    case "yahoo":
+      engine = new YahooEngine();
+      break;
+    case "google":
+      engine = new GoogleEngine();
+      break;
+    case "mojeek":
+      engine = new MojeekEngine();
       break;
     default:
       console.error(`❌ Unknown engine: ${flags.engine}`);

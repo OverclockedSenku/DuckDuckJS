@@ -8,6 +8,9 @@
 
 import { DuckDuckGoEngine } from "../src/engine/duckduckgo.ts";
 import { BraveEngine } from "../src/engine/brave.ts";
+import { GoogleEngine } from "../src/engine/google.ts";
+import { MojeekEngine } from "../src/engine/mojeek.ts";
+import { YahooEngine } from "../src/engine/yahoo.ts";
 import {
   blue,
   bold,
@@ -45,6 +48,9 @@ const COOL_DOWN_MS = 1500; // Wait between retries to avoid IP flagging
 const engines = [
   new DuckDuckGoEngine(),
   new BraveEngine(),
+  new GoogleEngine(),
+  new MojeekEngine(),
+  new YahooEngine(),
 ];
 
 const reports: TestResult[] = [];
@@ -132,9 +138,6 @@ async function main() {
       await runTest(engine, "Video Search", "videos");
       await runTest(engine, "News Search", "news");
     }
-
-    // Add cool-down between different engines
-    await sleep(2000);
   }
 
   // --- Final Report Generation ---

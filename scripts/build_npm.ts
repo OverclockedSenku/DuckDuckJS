@@ -9,12 +9,12 @@ await build({
   shims: {
     // This adds the 'fetch' shim so your library works in older Node versions
     deno: true,
-    undici: true, 
+    undici: true,
   },
   package: {
     // This is the actual package.json that will be generated
     name: "@overclockedsenku/duckduckjs",
-    version: "26.0.0",
+    version: "26.1.0",
     description: "A fast, modular search engine scraper for Deno and Node.js.",
     license: "Apache-2.0",
     keywords: [
@@ -27,7 +27,7 @@ await build({
       "deno",
       "typescript",
       "api",
-      "duckduckjs"
+      "duckduckjs",
     ],
     repository: {
       type: "git",
@@ -53,5 +53,6 @@ await build({
     // Copy the README and LICENSE to the npm folder
     Deno.copyFileSync("LICENSE", "npm/LICENSE");
     Deno.copyFileSync("README.md", "npm/README.md");
+    Deno.copyFileSync(".npmrc", "npm/.npmrc");
   },
 });

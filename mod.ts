@@ -9,6 +9,9 @@ export { BaseSearchEngine } from "./src/core/base.ts";
 // Export the specific Engines
 export { DuckDuckGoEngine } from "./src/engine/duckduckgo.ts";
 export { BraveEngine } from "./src/engine/brave.ts";
+export { GoogleEngine } from "./src/engine/google.ts";
+export { MojeekEngine } from "./src/engine/mojeek.ts";
+export { YahooEngine } from "./src/engine/yahoo.ts";
 
 // Export Types so users get full IntelliSense
 export type {
